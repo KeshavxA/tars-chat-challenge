@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { MessageSquare, ArrowLeft } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import Sidebar from "@/components/sidebar";
+import ChatArea from "@/components/chat-area";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface SelectedUser {
@@ -19,6 +20,9 @@ export default function Home() {
   const convexUser = useQuery(api.users.currentUser);
   const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [conversationId, setConversationId] = useState<Id<"conversations"> | null>(null);
+
+  const getOrCreateConversation = useMutation(api.conversations.getOrCreateConversation);
 
   if (!isLoaded) {
     return (
@@ -51,9 +55,16 @@ export default function Home() {
     );
   }
 
-  const handleSelectUser = (userId: Id<"users">, userName: string, userImage: string) => {
+  const handleSelectUser = async (userId: Id<"users">, userName: string, userImage: string) => {
     setSelectedUser({ id: userId, name: userName, imageUrl: userImage });
     setShowChat(true);
+
+    try {
+      const convId = await getOrCreateConversation({ otherUserId: userId });
+      setConversationId(convId);
+    } catch (error) {
+      console.error("Failed to get/create conversation:", error);
+    }
   };
 
   const handleBackToSidebar = () => {
@@ -62,6 +73,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col bg-background overflow-hidden">
+      {/* Top Header */}
       <header className="flex-none h-14 border-b border-border/40 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex h-full items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
@@ -90,7 +102,9 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Main Content: Sidebar + Chat Area */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
         <aside
           className={`
             w-full md:w-80 lg:w-96 flex-none
@@ -105,6 +119,7 @@ export default function Home() {
           />
         </aside>
 
+        {/* Chat Area */}
         <main
           className={`
             flex-1 flex flex-col min-w-0
@@ -114,67 +129,16 @@ export default function Home() {
           `}
         >
           {selectedUser ? (
-            <ChatPlaceholder
-              userName={selectedUser.name}
-              userImage={selectedUser.imageUrl}
+            <ChatArea
+              conversationId={conversationId}
+              recipientName={selectedUser.name}
+              recipientImage={selectedUser.imageUrl}
               onBack={handleBackToSidebar}
             />
           ) : (
             <NoChatSelected />
           )}
         </main>
-      </div>
-    </div>
-  );
-}
-
-function ChatPlaceholder({
-  userName,
-  userImage,
-  onBack,
-}: {
-  userName: string;
-  userImage: string;
-  onBack: () => void;
-}) {
-  return (
-    <div className="flex h-full flex-col bg-background">
-      <div className="flex-none flex items-center gap-3 border-b border-border/40 px-4 h-14 bg-card/30">
-        <button
-          onClick={onBack}
-          className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <img
-              src={userImage}
-              alt={userName}
-              className="h-8 w-8 rounded-full object-cover ring-2 ring-border/50"
-            />
-            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">{userName}</p>
-            <p className="text-xs text-emerald-500">Online</p>
-          </div>
-        </div>
-      </div>
-
-
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center px-6">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/10 to-violet-500/10">
-            <MessageSquare className="h-8 w-8 text-primary/50" />
-          </div>
-          <p className="text-base font-semibold text-foreground">
-            Chat with {userName}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Messaging will be available in the next phase.
-          </p>
-        </div>
       </div>
     </div>
   );
