@@ -81,3 +81,15 @@ export const getAllUsers = query({
         return await ctx.db.query("users").collect();
     },
 });
+
+// Public query: get all users except the currently logged-in user
+export const getOtherUsers = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return [];
+
+        const allUsers = await ctx.db.query("users").collect();
+        return allUsers.filter((user) => user.clerkId !== identity.subject);
+    },
+});

@@ -1,0 +1,150 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Search, Users, UserRoundSearch } from "lucide-react";
+import type { Id } from "@/convex/_generated/dataModel";
+
+interface SidebarProps {
+    selectedUserId: Id<"users"> | null;
+    onSelectUser: (userId: Id<"users">, userName: string, userImage: string) => void;
+}
+
+export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const users = useQuery(api.users.getOtherUsers);
+
+    const filteredUsers = useMemo(() => {
+        if (!users) return [];
+        if (!searchQuery.trim()) return users;
+        const query = searchQuery.toLowerCase();
+        return users.filter((user) => user.name.toLowerCase().includes(query));
+    }, [users, searchQuery]);
+
+    const getInitials = (name: string) => {
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+    return (
+        <div className="flex h-full flex-col border-r border-border/40 bg-card/50">
+            {/* Sidebar Header */}
+            <div className="flex-none p-4 pb-3">
+                <div className="mb-3 flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600">
+                        <Users className="h-4 w-4 text-white" />
+                    </div>
+                    <h2 className="text-base font-semibold tracking-tight">Contacts</h2>
+                    {users && (
+                        <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">
+                            {users.length}
+                        </span>
+                    )}
+                </div>
+
+                {/* Search Input */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        id="user-search"
+                        placeholder="Search users..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-9 pl-9 text-sm bg-background/60 border-border/50 focus-visible:border-primary/50"
+                    />
+                </div>
+            </div>
+
+            {/* User List */}
+            <ScrollArea className="flex-1 px-2">
+                {!users ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        <p className="mt-3 text-xs text-muted-foreground">Loading users...</p>
+                    </div>
+                ) : filteredUsers.length === 0 ? (
+                    <EmptyState searchQuery={searchQuery} />
+                ) : (
+                    <div className="flex flex-col gap-0.5 pb-2">
+                        {filteredUsers.map((user) => (
+                            <button
+                                key={user._id}
+                                id={`user-${user._id}`}
+                                onClick={() => onSelectUser(user._id, user.name, user.imageUrl)}
+                                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selectedUserId === user._id
+                                        ? "bg-primary/10 shadow-sm shadow-primary/5"
+                                        : "hover:bg-muted/60"
+                                    }`}
+                            >
+                                <div className="relative flex-none">
+                                    <Avatar size="default">
+                                        <AvatarImage src={user.imageUrl} alt={user.name} />
+                                        <AvatarFallback className="text-xs font-medium bg-gradient-to-br from-blue-500/20 to-violet-500/20 text-primary">
+                                            {getInitials(user.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    {user.isOnline && (
+                                        <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />
+                                    )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <p
+                                        className={`truncate text-sm font-medium transition-colors ${selectedUserId === user._id
+                                                ? "text-primary"
+                                                : "text-foreground group-hover:text-foreground"
+                                            }`}
+                                    >
+                                        {user.name}
+                                    </p>
+                                    <p className="truncate text-xs text-muted-foreground">
+                                        {user.isOnline ? "Online" : "Offline"}
+                                    </p>
+                                </div>
+
+                                {selectedUserId === user._id && (
+                                    <div className="h-1.5 w-1.5 flex-none rounded-full bg-primary animate-pulse" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </ScrollArea>
+        </div>
+    );
+}
+
+function EmptyState({ searchQuery }: { searchQuery: string }) {
+    return (
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/80">
+                <UserRoundSearch className="h-7 w-7 text-muted-foreground/60" />
+            </div>
+            {searchQuery.trim() ? (
+                <>
+                    <p className="text-sm font-medium text-foreground">No users found</p>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                        No users matching &ldquo;
+                        <span className="font-medium text-foreground/80">{searchQuery}</span>
+                        &rdquo;. Try a different search.
+                    </p>
+                </>
+            ) : (
+                <>
+                    <p className="text-sm font-medium text-foreground">No contacts yet</p>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                        When other users sign up, they&apos;ll appear here automatically.
+                    </p>
+                </>
+            )}
+        </div>
+    );
+}
