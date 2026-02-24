@@ -66,3 +66,37 @@ export const getMyConversations = query({
         );
     },
 });
+
+// Query: get all conversations for the current user as a map of otherUserId -> conversationId
+export const getConversationMap = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return {};
+
+        const currentUser = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+
+        if (!currentUser) return {};
+
+        const allConversations = await ctx.db.query("conversations").collect();
+        const myConversations = allConversations.filter(
+            (c) =>
+                c.participantOne === currentUser._id ||
+                c.participantTwo === currentUser._id
+        );
+
+        const map: Record<string, string> = {};
+        for (const conv of myConversations) {
+            const otherUserId =
+                conv.participantOne === currentUser._id
+                    ? conv.participantTwo
+                    : conv.participantOne;
+            map[otherUserId] = conv._id;
+        }
+
+        return map;
+    },
+});

@@ -32,6 +32,8 @@ interface SidebarProps {
 export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const users = useQuery(api.users.getOtherUsers);
+    const unreadCounts = useQuery(api.messages.getUnreadCounts) ?? {};
+    const conversationMap = useQuery(api.conversations.getConversationMap) ?? {};
 
     const filteredUsers = useMemo(() => {
         if (!users) return [];
@@ -128,9 +130,26 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                                     </p>
                                 </div>
 
-                                {selectedUserId === user._id && (
-                                    <div className="h-2 w-2 flex-none rounded-full bg-primary animate-pulse shadow-sm shadow-primary/50" />
-                                )}
+                                {(() => {
+                                    const convId = conversationMap[user._id];
+                                    const unread = convId ? unreadCounts[convId] ?? 0 : 0;
+
+                                    if (unread > 0 && selectedUserId !== user._id) {
+                                        return (
+                                            <span className="flex-none inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-1.5 text-[10px] font-bold text-white shadow-sm shadow-blue-500/30">
+                                                {unread > 9 ? "9+" : unread}
+                                            </span>
+                                        );
+                                    }
+
+                                    if (selectedUserId === user._id) {
+                                        return (
+                                            <div className="h-2 w-2 flex-none rounded-full bg-primary animate-pulse shadow-sm shadow-primary/50" />
+                                        );
+                                    }
+
+                                    return null;
+                                })()}
                             </button>
                         ))}
                     </div>

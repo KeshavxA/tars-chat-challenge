@@ -113,10 +113,33 @@ export default function ChatArea({
     };
 
     const formatTime = (timestamp: number) => {
-        return new Date(timestamp).toLocaleTimeString([], {
+        const date = new Date(timestamp);
+        const now = new Date();
+
+        const isToday =
+            date.getDate() === now.getDate() &&
+            date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear();
+
+        const isSameYear = date.getFullYear() === now.getFullYear();
+
+        const time = date.toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
         });
+
+        if (isToday) {
+            return time; // "10:45 AM"
+        }
+
+        const month = date.toLocaleDateString([], { month: "short" });
+        const day = date.getDate();
+
+        if (isSameYear) {
+            return `${month} ${day}, ${time}`; // "Feb 24, 10:45 AM"
+        }
+
+        return `${month} ${day}, ${date.getFullYear()}, ${time}`; // "Feb 24, 2025, 10:45 AM"
     };
 
     return (

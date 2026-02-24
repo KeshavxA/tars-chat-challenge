@@ -24,6 +24,7 @@ export default function Home() {
   const [conversationId, setConversationId] = useState<Id<"conversations"> | null>(null);
 
   const getOrCreateConversation = useMutation(api.conversations.getOrCreateConversation);
+  const markAsRead = useMutation(api.messages.markAsRead);
 
   // Track online presence — sends heartbeat every 60s, handles tab visibility
   usePresence(!!isSignedIn);
@@ -66,6 +67,8 @@ export default function Home() {
     try {
       const convId = await getOrCreateConversation({ otherUserId: userId });
       setConversationId(convId);
+      // Mark conversation as read when opened
+      await markAsRead({ conversationId: convId });
     } catch (error) {
       console.error("Failed to get/create conversation:", error);
     }
