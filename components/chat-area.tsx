@@ -26,11 +26,18 @@ export default function ChatArea({
         api.messages.getMessages,
         conversationId ? { conversationId } : "skip"
     );
+    const typingUsers = useQuery(
+        api.typing.getTypingUsers,
+        conversationId ? { conversationId } : "skip"
+    );
     const sendMessage = useMutation(api.messages.sendMessage);
+    const setTyping = useMutation(api.typing.setTyping);
+    const clearTyping = useMutation(api.typing.clearTyping);
     const [newMessage, setNewMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Auto-scroll to bottom when messages change
     const scrollToBottom = useCallback(() => {
@@ -48,6 +55,13 @@ export default function ChatArea({
         setNewMessage("");
         setIsSending(true);
 
+        // Clear typing indicator on send
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+        }
+        clearTyping({ conversationId });
+
         try {
             await sendMessage({
                 conversationId,
@@ -59,6 +73,27 @@ export default function ChatArea({
         } finally {
             setIsSending(false);
         }
+    };
+
+    // Emit typing indicator on input change
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setNewMessage(e.target.value);
+
+        if (!conversationId) return;
+
+        // Send typing signal
+        setTyping({ conversationId });
+
+        // Clear previous timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        // Auto-clear typing after 2 seconds of inactivity
+        typingTimeoutRef.current = setTimeout(() => {
+            clearTyping({ conversationId });
+            typingTimeoutRef.current = null;
+        }, 2000);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -171,8 +206,8 @@ export default function ChatArea({
                                             <p>{message.content}</p>
                                             <p
                                                 className={`mt-1 text-[10px] leading-none ${message.isCurrentUser
-                                                        ? "text-white/60 text-right"
-                                                        : "text-muted-foreground/60 text-left"
+                                                    ? "text-white/60 text-right"
+                                                    : "text-muted-foreground/60 text-left"
                                                     }`}
                                             >
                                                 {formatTime(message._creationTime)}
@@ -187,6 +222,22 @@ export default function ChatArea({
                 </div>
             </ScrollArea>
 
+            {/* Typing Indicator */}
+            {typingUsers && typingUsers.length > 0 && (
+                <div className="flex-none px-4 py-1.5 border-t border-border/20">
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce [animation-delay:0ms] [animation-duration:600ms]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce [animation-delay:150ms] [animation-duration:600ms]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce [animation-delay:300ms] [animation-duration:600ms]" />
+                        </div>
+                        <p className="text-xs text-muted-foreground italic">
+                            {typingUsers.map((u) => u?.name).join(", ")} is typing...
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Message Input */}
             <div className="flex-none border-t border-border/40 bg-card/30 backdrop-blur-sm p-3">
                 <div className="flex items-center gap-2">
@@ -194,7 +245,7 @@ export default function ChatArea({
                         id="message-input"
                         placeholder={`Message ${recipientName}...`}
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         disabled={isSending || !conversationId}
                         className="flex-1 h-10 bg-background/60 border-border/50 focus-visible:border-primary/50 rounded-xl"
