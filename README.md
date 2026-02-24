@@ -2,7 +2,7 @@
 
 A full-featured, real-time chat application built as part of the **TARS Chat Challenge**. This project demonstrates modern web development practices with a focus on real-time communication, responsive design, and a polished user experience.
 
-> **Live Demo:** Deployed with Convex backend — sign in with any email to start chatting!
+> **🔗 Live Demo:** (https://tars-chat-challenge-sigma.vercel.app/)
 
 ---
 
