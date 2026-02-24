@@ -23,6 +23,7 @@ export default defineSchema({
         conversationId: v.id("conversations"),
         senderId: v.id("users"),
         content: v.string(),
+        isDeleted: v.optional(v.boolean()),
     })
         .index("by_conversation", ["conversationId"]),
 
@@ -40,4 +41,12 @@ export default defineSchema({
         lastReadTime: v.number(),
     })
         .index("by_conversation_user", ["conversationId", "userId"]),
+
+    reactions: defineTable({
+        messageId: v.id("messages"),
+        userId: v.id("users"),
+        emoji: v.string(),
+    })
+        .index("by_message", ["messageId"])
+        .index("by_message_user_emoji", ["messageId", "userId", "emoji"]),
 });

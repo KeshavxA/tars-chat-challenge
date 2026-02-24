@@ -45,6 +45,7 @@ export const getMessages = query({
                     senderName: sender?.name ?? "Unknown",
                     senderImage: sender?.imageUrl ?? "",
                     isCurrentUser: message.senderId === currentUser._id,
+                    isDeleted: message.isDeleted ?? false,
                 };
             })
         );
@@ -90,6 +91,36 @@ export const sendMessage = mutation({
             conversationId: args.conversationId,
             senderId: currentUser._id,
             content,
+        });
+    },
+});
+
+// Mutation: soft-delete a message (only the sender can delete)
+export const deleteMessage = mutation({
+    args: {
+        messageId: v.id("messages"),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const currentUser = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+
+        if (!currentUser) throw new Error("User not found");
+
+        const message = await ctx.db.get(args.messageId);
+        if (!message) throw new Error("Message not found");
+
+        // Only the sender can delete their own messages
+        if (message.senderId !== currentUser._id) {
+            throw new Error("You can only delete your own messages");
+        }
+
+        await ctx.db.patch(args.messageId, {
+            isDeleted: true,
         });
     },
 });
