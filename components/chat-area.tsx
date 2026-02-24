@@ -164,18 +164,20 @@ export default function ChatArea({
                                     >
                                         <div
                                             className={`rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${message.isCurrentUser
-                                                    ? "bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-br-md"
-                                                    : "bg-muted/80 text-foreground rounded-bl-md"
+                                                ? "bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-br-md"
+                                                : "bg-muted/80 text-foreground rounded-bl-md"
                                                 }`}
                                         >
-                                            {message.content}
+                                            <p>{message.content}</p>
+                                            <p
+                                                className={`mt-1 text-[10px] leading-none ${message.isCurrentUser
+                                                        ? "text-white/60 text-right"
+                                                        : "text-muted-foreground/60 text-left"
+                                                    }`}
+                                            >
+                                                {formatTime(message._creationTime)}
+                                            </p>
                                         </div>
-                                        <p
-                                            className={`mt-0.5 text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity ${message.isCurrentUser ? "text-right" : "text-left"
-                                                }`}
-                                        >
-                                            {formatTime(message._creationTime)}
-                                        </p>
                                     </div>
                                 </div>
                             );
