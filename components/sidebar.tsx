@@ -9,6 +9,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Users, UserRoundSearch } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 
+function formatLastSeen(timestamp: number): string {
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (diffSec < 60) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHour < 24) return `${diffHour}h ago`;
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return new Date(timestamp).toLocaleDateString();
+}
+
 interface SidebarProps {
     selectedUserId: Id<"users"> | null;
     onSelectUser: (userId: Id<"users">, userName: string, userImage: string) => void;
@@ -36,7 +51,6 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
 
     return (
         <div className="flex h-full flex-col border-r border-border/40 bg-card/50">
-            {/* Sidebar Header */}
             <div className="flex-none p-4 pb-3">
                 <div className="mb-3 flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600">
@@ -50,7 +64,6 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                     )}
                 </div>
 
-                {/* Search Input */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -63,7 +76,6 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                 </div>
             </div>
 
-            {/* User List */}
             <ScrollArea className="flex-1 px-2">
                 {!users ? (
                     <div className="flex flex-col items-center justify-center py-16">
@@ -80,8 +92,8 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                                 id={`user-${user._id}`}
                                 onClick={() => onSelectUser(user._id, user.name, user.imageUrl)}
                                 className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selectedUserId === user._id
-                                        ? "bg-primary/10 shadow-sm shadow-primary/5"
-                                        : "hover:bg-muted/60"
+                                    ? "bg-primary/10 shadow-sm shadow-primary/5"
+                                    : "hover:bg-muted/60"
                                     }`}
                             >
                                 <div className="relative flex-none">
@@ -99,14 +111,20 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                                 <div className="flex-1 min-w-0">
                                     <p
                                         className={`truncate text-sm font-medium transition-colors ${selectedUserId === user._id
-                                                ? "text-primary"
-                                                : "text-foreground group-hover:text-foreground"
+                                            ? "text-primary"
+                                            : "text-foreground group-hover:text-foreground"
                                             }`}
                                     >
                                         {user.name}
                                     </p>
                                     <p className="truncate text-xs text-muted-foreground">
-                                        {user.isOnline ? "Online" : "Offline"}
+                                        {user.isOnline ? (
+                                            <span className="text-emerald-500">Online</span>
+                                        ) : user.lastSeen ? (
+                                            <span>Last seen {formatLastSeen(user.lastSeen)}</span>
+                                        ) : (
+                                            "Offline"
+                                        )}
                                     </p>
                                 </div>
 

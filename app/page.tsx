@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { MessageSquare } from "lucide-react";
 import Sidebar from "@/components/sidebar";
 import ChatArea from "@/components/chat-area";
+import { usePresence } from "@/hooks/use-presence";
 import type { Id } from "@/convex/_generated/dataModel";
 
 interface SelectedUser {
@@ -23,6 +24,9 @@ export default function Home() {
   const [conversationId, setConversationId] = useState<Id<"conversations"> | null>(null);
 
   const getOrCreateConversation = useMutation(api.conversations.getOrCreateConversation);
+
+  // Track online presence — sends heartbeat every 60s, handles tab visibility
+  usePresence(!!isSignedIn);
 
   if (!isLoaded) {
     return (
