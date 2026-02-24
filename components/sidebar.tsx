@@ -91,9 +91,9 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                                 key={user._id}
                                 id={`user-${user._id}`}
                                 onClick={() => onSelectUser(user._id, user.name, user.imageUrl)}
-                                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ${selectedUserId === user._id
-                                    ? "bg-primary/10 shadow-sm shadow-primary/5"
-                                    : "hover:bg-muted/60"
+                                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 cursor-pointer ${selectedUserId === user._id
+                                    ? "bg-gradient-to-r from-primary/15 to-primary/5 shadow-sm shadow-primary/10 ring-1 ring-primary/20 border-l-2 border-primary"
+                                    : "hover:bg-muted/80 hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                                     }`}
                             >
                                 <div className="relative flex-none">
@@ -111,7 +111,7 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                                 <div className="flex-1 min-w-0">
                                     <p
                                         className={`truncate text-sm font-medium transition-colors ${selectedUserId === user._id
-                                            ? "text-primary"
+                                            ? "bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent"
                                             : "text-foreground group-hover:text-foreground"
                                             }`}
                                     >
@@ -129,7 +129,7 @@ export default function Sidebar({ selectedUserId, onSelectUser }: SidebarProps) 
                                 </div>
 
                                 {selectedUserId === user._id && (
-                                    <div className="h-1.5 w-1.5 flex-none rounded-full bg-primary animate-pulse" />
+                                    <div className="h-2 w-2 flex-none rounded-full bg-primary animate-pulse shadow-sm shadow-primary/50" />
                                 )}
                             </button>
                         ))}
