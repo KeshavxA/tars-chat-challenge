@@ -8,6 +8,7 @@ export default defineSchema({
         name: v.string(),
         imageUrl: v.string(),
         isOnline: v.boolean(),
+        lastSeen: v.number(),
     })
         .index("by_clerkId", ["clerkId"])
         .index("by_email", ["email"]),

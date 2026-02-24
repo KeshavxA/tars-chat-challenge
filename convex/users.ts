@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
 // Internal mutation: create or update a user from Clerk webhook data
 export const upsertUser = internalMutation({
@@ -30,6 +30,7 @@ export const upsertUser = internalMutation({
             name: args.name,
             imageUrl: args.imageUrl,
             isOnline: true,
+            lastSeen: Date.now(),
         });
     },
 });
@@ -91,5 +92,28 @@ export const getOtherUsers = query({
 
         const allUsers = await ctx.db.query("users").collect();
         return allUsers.filter((user) => user.clerkId !== identity.subject);
+    },
+});
+
+// Public mutation: update the current user's online presence
+export const updatePresence = mutation({
+    args: {
+        isOnline: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+            .unique();
+
+        if (!user) return;
+
+        await ctx.db.patch(user._id, {
+            isOnline: args.isOnline,
+            lastSeen: Date.now(),
+        });
     },
 });
