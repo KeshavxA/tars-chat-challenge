@@ -138,6 +138,7 @@ export default function Home() {
           {selectedUser ? (
             <ChatArea
               conversationId={conversationId}
+              recipientId={selectedUser.id}
               recipientName={selectedUser.name}
               recipientImage={selectedUser.imageUrl}
               onBack={handleBackToSidebar}

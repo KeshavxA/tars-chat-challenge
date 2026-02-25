@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     ArrowLeft, Send, MessageSquare, Loader2,
@@ -16,6 +16,7 @@ const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 interface ChatAreaProps {
     conversationId: Id<"conversations"> | null;
+    recipientId: Id<"users">;
     recipientName: string;
     recipientImage: string;
     onBack: () => void;
@@ -23,6 +24,7 @@ interface ChatAreaProps {
 
 export default function ChatArea({
     conversationId,
+    recipientId,
     recipientName,
     recipientImage,
     onBack,
@@ -39,6 +41,7 @@ export default function ChatArea({
         api.reactions.getReactionsForConversation,
         conversationId ? { conversationId } : "skip"
     );
+    const recipientUser = useQuery(api.users.getUserById, { userId: recipientId });
 
     const sendMessage = useMutation(api.messages.sendMessage);
     const deleteMessage = useMutation(api.messages.deleteMessage);
@@ -53,6 +56,7 @@ export default function ChatArea({
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isNearBottomRef = useRef(true);
     const prevMessageCountRef = useRef(0);
@@ -113,6 +117,11 @@ export default function ChatArea({
         setNewMessage("");
         setIsSending(true);
 
+        // Reset textarea height
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+        }
+
         if (typingTimeoutRef.current) {
             clearTimeout(typingTimeoutRef.current);
             typingTimeoutRef.current = null;
@@ -126,12 +135,21 @@ export default function ChatArea({
             setNewMessage(messageContent);
         } finally {
             setIsSending(false);
+            // Re-focus the textarea after sending
+            textareaRef.current?.focus();
         }
     };
 
     // ── Typing Indicator ───────────────────────────────────
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setNewMessage(e.target.value);
+
+        // Auto-resize textarea
+        if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
+        }
+
         if (!conversationId) return;
 
         setTypingMutation({ conversationId });
@@ -142,7 +160,7 @@ export default function ChatArea({
         }, 2000);
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             handleSend();
@@ -172,6 +190,20 @@ export default function ChatArea({
     const getInitials = (name: string) =>
         name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
+    const isRecipientOnline = recipientUser?.isOnline ?? false;
+
+    const formatLastSeen = (lastSeen?: number) => {
+        if (!lastSeen) return "Offline";
+        const diff = Date.now() - lastSeen;
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return "Last seen just now";
+        if (minutes < 60) return `Last seen ${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `Last seen ${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `Last seen ${days}d ago`;
+    };
+
     const formatTime = (timestamp: number) => {
         const date = new Date(timestamp);
         const now = new Date();
@@ -197,7 +229,7 @@ export default function ChatArea({
 
     // ── Render ────────────────────────────────────────────
     return (
-        <div className="flex h-full flex-col bg-background">
+        <div className="flex h-full flex-col bg-background overflow-hidden">
             {/* Chat Header */}
             <div className="flex-none flex items-center gap-3 border-b border-border/40 px-4 h-14 bg-card/30 backdrop-blur-sm">
                 <button
@@ -215,17 +247,21 @@ export default function ChatArea({
                                 {getInitials(recipientName)}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
+                        {isRecipientOnline && (
+                            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
+                        )}
                     </div>
                     <div>
                         <p className="text-sm font-semibold">{recipientName}</p>
-                        <p className="text-xs text-emerald-500">Online</p>
+                        <p className={`text-xs ${isRecipientOnline ? "text-emerald-500" : "text-muted-foreground"}`}>
+                            {isRecipientOnline ? "Online" : formatLastSeen(recipientUser?.lastSeen)}
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <ScrollArea className="flex-1 px-4 relative" ref={scrollContainerRef}>
+            <ScrollArea className="flex-1 min-h-0 px-4 relative" ref={scrollContainerRef}>
                 <div className="py-4 space-y-1">
                     {!messages ? (
                         /* ── Skeleton Loader ── */
@@ -305,7 +341,7 @@ export default function ChatArea({
                                                         : "bg-muted/80 text-foreground rounded-bl-md"
                                                         }`}
                                                 >
-                                                    <p>{message.content}</p>
+                                                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
                                                     <p
                                                         className={`mt-1 text-[10px] leading-none ${message.isCurrentUser
                                                             ? "text-white/60 text-right"
@@ -424,15 +460,17 @@ export default function ChatArea({
 
             {/* Message Input */}
             <div className="flex-none border-t border-border/40 bg-card/30 backdrop-blur-sm p-3">
-                <div className="flex items-center gap-2">
-                    <Input
+                <div className="flex items-end gap-2">
+                    <textarea
+                        ref={textareaRef}
                         id="message-input"
                         placeholder={`Message ${recipientName}...`}
                         value={newMessage}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         disabled={isSending || !conversationId}
-                        className="flex-1 h-10 bg-background/60 border-border/50 focus-visible:border-primary/50 rounded-xl"
+                        rows={1}
+                        className="flex-1 min-h-[40px] max-h-[120px] overflow-y-auto resize-none rounded-xl border border-border/50 bg-background/60 px-3.5 py-2.5 text-sm leading-relaxed placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         autoComplete="off"
                     />
                     <button

@@ -95,6 +95,14 @@ export const getOtherUsers = query({
     },
 });
 
+// Public query: get a user by their Convex document ID
+export const getUserById = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        return await ctx.db.get(args.userId);
+    },
+});
+
 // Public mutation: update the current user's online presence
 export const updatePresence = mutation({
     args: {

@@ -44,6 +44,9 @@ A full-featured, real-time chat application built as part of the **TARS Chat Cha
 | 11 | **Delete Own Messages** | ✅ | Soft-delete with hover-reveal trash icon. Deleted messages show "🚫 This message was deleted" placeholder. |
 | 12 | **Message Reactions** | ✅ | React with 👍 ❤️ 😂 😮 😢 🔥 via hover popup. Reaction pills display below messages with count + highlighted state. Toggle on/off. |
 | 13 | **Loading & Error States** | ✅ | Skeleton loaders for sidebar (5 user cards) and chat (6 message bubbles). Error recovery restores unsent message text. |
+| 14 | **Multi-Line Messages** | ✅ | Press `Shift+Enter` to add new lines in a single message. Auto-resizing textarea (up to 5 lines) with internal scroll. Line breaks preserved in chat bubbles. |
+| 15 | **Real-Time Chat Online Status** | ✅ | Chat header shows live online/offline status with green dot and "Last seen Xm ago" for offline users — updates in real time via Convex subscription. |
+| 16 | **Auto-Focus Input** | ✅ | Message input automatically re-focuses after every sent message for seamless back-to-back typing. |
 
 ---
 
@@ -200,6 +203,12 @@ A `readStatus` table tracks the last time each user viewed a conversation. Unrea
 ### Reactions — Convex ASCII Key Workaround
 Convex requires object field names to be ASCII-only. Since emoji characters can't be used as keys, reactions are returned as arrays (`[{ emoji: "❤️", count: 1, hasReacted: true }]`) instead of emoji-keyed objects.
 
+### Multi-Line Messages
+Replaced the single-line `<Input>` with an auto-resizing `<textarea>`. Press `Enter` to send, `Shift+Enter` to insert a new line. The textarea grows up to ~5 lines (120px), then scrolls internally. Messages display with `whitespace-pre-wrap` to preserve line breaks.
+
+### Chat Header — Real-Time Online Status
+The chat header now queries the recipient's actual `isOnline` status from Convex via a `getUserById` subscription instead of hardcoding "Online". When the user is offline, it shows a relative "Last seen Xm/h/d ago" timestamp in gray.
+
 ---
 
 ## 📋 Feature Checklist (Challenge Requirements)
@@ -217,6 +226,9 @@ Convex requires object field names to be ASCII-only. Since emoji characters can'
 - [x] Delete own messages (soft delete)
 - [x] Message reactions (emoji)
 - [x] Skeleton loading states
+- [x] Multi-line messages (Shift+Enter)
+- [x] Real-time online/offline status in chat header
+- [x] Auto-focus input after sending
 
 ---
 
