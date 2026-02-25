@@ -135,8 +135,8 @@ export default function ChatArea({
             setNewMessage(messageContent);
         } finally {
             setIsSending(false);
-            // Re-focus the textarea after sending
-            textareaRef.current?.focus();
+            // Re-focus the textarea after sending (deferred so React re-renders first and textarea is no longer disabled)
+            setTimeout(() => textareaRef.current?.focus(), 0);
         }
     };
 
